@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>체질밥상 프로토타입</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0f0f1a; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 2rem 1rem; font-family: -apple-system, 'Noto Sans KR', sans-serif; }
+.phone {
+  width: 340px; background: #1a1a2e;
+  border-radius: 32px; overflow: hidden;
+  border: 1px solid #2e2e4a;
+  display: flex; flex-direction: column; height: 720px;
+  position: relative;
+}
+.status-bar { padding: 10px 20px 6px; display: flex; justify-content: space-between; font-size: 11px; color: #aaa; }
+.top-bar {
+  background: #1a1a2e; padding: 10px 16px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #2e2e4a;
+}
+.top-title { font-size: 18px; font-weight: 600; color: #fff; }
+.top-sub { font-size: 11px; color: #8888aa; margin-top: 1px; }
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #2e2e4a; border: none; color: #aaa;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; cursor: pointer;
+}
+.quick-strip { display: flex; border-bottom: 1px solid #2e2e4a; background: #1a1a2e; }
+.q-icon-btn {
+  flex: 1; padding: 10px 4px; text-align: center;
+  background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.q-icon-btn:active { background: #2e2e4a; }
+.q-icon { font-size: 22px; }
+.q-label { font-size: 10px; color: #8888aa; }
+.timeline { flex: 1; overflow-y: auto; background: #12121e; }
+.timeline::-webkit-scrollbar { width: 3px; }
+.timeline::-webkit-scrollbar-thumb { background: #2e2e4a; }
+.day-header {
+  padding: 10px 16px 6px; background: #1a1a2e;
+  font-size: 12px; color: #8888aa; font-weight: 600;
+  border-bottom: 1px solid #2e2e4a;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.day-header-right { font-size: 11px; color: #555577; }
+.entry {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid #1e1e30;
+  cursor: pointer; transition: background 0.1s;
+}
+.entry:active { background: #1e1e30; }
+.entry-time { font-size: 11px; color: #555577; min-width: 42px; text-align: right; padding-top: 2px; line-height: 1.4; }
+.entry-dot {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+}
+.dot-meal { background: #2d4a3e; }
+.dot-snack { background: #3a3a1a; }
+.dot-symptom { background: #4a1e2e; }
+.dot-note { background: #1e2e4a; }
+.dot-water { background: #1e3040; }
+.entry-body { flex: 1; }
+.entry-type { font-size: 11px; color: #666688; margin-bottom: 2px; }
+.entry-main { font-size: 13px; color: #ddd; line-height: 1.4; }
+.entry-meta { font-size: 11px; color: #555577; margin-top: 3px; }
+.entry-tag {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; margin-top: 4px; margin-right: 3px;
+}
+.tag-bad { background: #4a1e1e; color: #e07070; }
+.tag-good { background: #1e3a2e; color: #6ec4a0; }
+.tag-warn { background: #3a2e10; color: #c4a04a; }
+.chevron { color: #444466; font-size: 14px; align-self: center; transition: transform 0.2s; }
+.chevron.open { transform: rotate(90deg); }
+.detail-panel {
+  display: none; background: #1e1e30;
+  border-bottom: 1px solid #2e2e4a;
+  padding: 12px 16px 14px 68px;
+}
+.detail-panel.open { display: block; }
+.detail-row { margin-bottom: 10px; }
+.detail-row:last-child { margin-bottom: 0; }
+.detail-label { font-size: 10px; color: #666688; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.detail-val { font-size: 13px; color: #bbb; line-height: 1.5; }
+.food-list-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; border-bottom: 1px solid #2a2a40;
+  font-size: 13px; color: #ccc;
+}
+.food-list-item:last-child { border-bottom: none; }
+.food-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+.fb-good { background: #1e3a2e; color: #6ec4a0; }
+.fb-bad { background: #4a1e1e; color: #e07070; }
+.fb-neutral { background: #2a2a40; color: #8888aa; }
+.add-sheet {
+  display: none; position: absolute; left: 0; right: 0; bottom: 56px;
+  background: #1a1a2e; border-top: 1px solid #2e2e4a;
+  border-radius: 16px 16px 0 0; padding: 16px; z-index: 10;
+  animation: slideUp 0.2s ease;
+}
+@keyframes slideUp { from { transform: translateY(30px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+.add-sheet.open { display: block; }
+.sheet-title { font-size: 14px; font-weight: 600; color: #ddd; margin-bottom: 12px; }
+.sheet-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.sheet-input {
+  flex: 1; background: #12121e; border: 1px solid #2e2e4a;
+  border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #ddd;
+  outline: none; font-family: inherit;
+}
+.sheet-input:focus { border-color: #1D9E75; }
+.sheet-input::placeholder { color: #444466; }
+.sheet-select {
+  background: #12121e; border: 1px solid #2e2e4a;
+  border-radius: 8px; padding: 9px 10px; font-size: 13px; color: #ddd;
+  font-family: inherit;
+}
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip {
+  padding: 4px 12px; border-radius: 12px; font-size: 11px;
+  background: #3a2e10; color: #c4a04a; cursor: pointer; border: none;
+  transition: background 0.15s;
+}
+.chip.active { background: #c4a04a; color: #1a1000; }
+.sheet-btn-row { display: flex; gap: 8px; margin-top: 10px; }
+.sheet-cancel {
+  flex: 1; padding: 11px; background: #12121e; border: 1px solid #2e2e4a;
+  border-radius: 8px; color: #8888aa; font-size: 13px; cursor: pointer; font-family: inherit;
+}
+.sheet-save {
+  flex: 2; padding: 11px; background: #1D9E75; border: none;
+  border-radius: 8px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.sheet-save:hover { background: #0F6E56; }
+.nav-tabs { display: flex; background: #1a1a2e; border-top: 1px solid #2e2e4a; }
+.nav-tab {
+  flex: 1; padding: 8px 4px 10px; text-align: center;
+  font-size: 10px; color: #555577; cursor: pointer; border: none; background: none;
+}
+.nav-tab.active { color: #1D9E75; }
+.nav-icon { font-size: 18px; display: block; margin-bottom: 2px; }
+.fab {
+  position: absolute; right: 16px; bottom: 64px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: #1D9E75; border: none; color: white;
+  font-size: 26px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 12px rgba(29,158,117,0.5);
+  z-index: 5;
+}
+.overlay {
+  display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 9; border-radius: 32px;
+}
+.overlay.open { display: block; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status-bar"><span>5:54</span><span>체질밥상</span><span>●●● 72</span></div>
+  <div class="top-bar">
+    <div>
+      <div class="top-title">2026년 4월 2일</div>
+      <div class="top-sub">오늘 · 기록 5건</div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="icon-btn">📅</button>
+      <button class="icon-btn">⋯</button>
+    </div>
+  </div>
+
+  <div class="quick-strip">
+    <button class="q-icon-btn" onclick="openSheet('식사')"><span class="q-icon">🍽️</span><span class="q-label">식사</span></button>
+    <button class="q-icon-btn" onclick="openSheet('간식')"><span class="q-icon">🍎</span><span class="q-label">간식</span></button>
+    <button class="q-icon-btn" onclick="openSheet('증상')"><span class="q-icon">🤢</span><span class="q-label">증상</span></button>
+    <button class="q-icon-btn" onclick="openSheet('물')"><span class="q-icon">💧</span><span class="q-label">물</span></button>
+    <button class="q-icon-btn" onclick="openSheet('메모')"><span class="q-icon">📝</span><span class="q-label">메모</span></button>
+    <button class="q-icon-btn" onclick="openSheet('운동')"><span class="q-icon">🏃</span><span class="q-label">운동</span></button>
+  </div>
+
+  <div class="timeline" id="timeline">
+    <div class="day-header">
+      <span>4월 2일 (목) · 오늘</span>
+      <span class="day-header-right">기록 5건</span>
+    </div>
+
+    <div class="entry" onclick="toggleDetail('d1')">
+      <div class="entry-time">07:30<br>AM</div>
+      <div class="entry-dot dot-meal">🍽️</div>
+      <div class="entry-body">
+        <div class="entry-type">식사</div>
+        <div class="entry-main">현미밥, 된장찌개, 두부구이</div>
+        <span class="entry-tag tag-good">체질 적합</span>
+      </div>
+      <div class="chevron" id="chev-d1">›</div>
+    </div>
+    <div class="detail-panel" id="d1">
+      <div class="detail-row">
+        <div class="detail-label">음식 상세</div>
+        <div class="food-list-item"><span>현미밥 1공기</span><span class="food-badge fb-good">적합</span></div>
+        <div class="food-list-item"><span>된장찌개 1그릇</span><span class="food-badge fb-good">적합</span></div>
+        <div class="food-list-item"><span>두부구이 4조각</span><span class="food-badge fb-good">적합</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">메모</div>
+        <div class="detail-val">소화 잘 됨. 속 편안함.</div>
+      </div>
+    </div>
+
+    <div class="entry" onclick="toggleDetail('d2')">
+      <div class="entry-time">10:15<br>AM</div>
+      <div class="entry-dot dot-symptom">🤢</div>
+      <div class="entry-body">
+        <div class="entry-type">증상</div>
+        <div class="entry-main">속 약간 더부룩함</div>
+        <div class="entry-meta">강도 약함</div>
+      </div>
+      <div class="chevron" id="chev-d2">›</div>
+    </div>
+    <div class="detail-panel" id="d2">
+      <div class="detail-row">
+        <div class="detail-label">증상</div>
+        <div class="detail-val">소화불량 (더부룩함)</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">강도</div>
+        <div class="detail-val">약함 · 직전 식사와 연관 가능성</div>
+      </div>
+    </div>
+
+    <div class="entry" onclick="toggleDetail('d3')">
+      <div class="entry-time">12:30<br>PM</div>
+      <div class="entry-dot dot-meal">🍽️</div>
+      <div class="entry-body">
+        <div class="entry-type">식사</div>
+        <div class="entry-main">닭가슴살 샐러드, 바나나</div>
+        <span class="entry-tag tag-warn">일부 주의</span>
+      </div>
+      <div class="chevron" id="chev-d3">›</div>
+    </div>
+    <div class="detail-panel" id="d3">
+      <div class="detail-row">
+        <div class="detail-label">음식 상세</div>
+        <div class="food-list-item"><span>닭가슴살 샐러드</span><span class="food-badge fb-good">적합</span></div>
+        <div class="food-list-item"><span>바나나 1개</span><span class="food-badge fb-bad">주의</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">메모</div>
+        <div class="detail-val">바나나가 찬 성질이라 소화에 영향 줄 수 있음.</div>
+      </div>
+    </div>
+
+    <div class="entry" onclick="toggleDetail('d4')">
+      <div class="entry-time">02:00<br>PM</div>
+      <div class="entry-dot dot-water">💧</div>
+      <div class="entry-body">
+        <div class="entry-type">물</div>
+        <div class="entry-main">물 350ml</div>
+        <div class="entry-meta">오늘 총 1,200ml</div>
+      </div>
+      <div class="chevron" id="chev-d4">›</div>
+    </div>
+    <div class="detail-panel" id="d4">
+      <div class="detail-row">
+        <div class="detail-label">음수량</div>
+        <div class="detail-val">350ml</div>
+      </div>
+    </div>
+
+    <div class="entry" onclick="toggleDetail('d5')">
+      <div class="entry-time">03:45<br>PM</div>
+      <div class="entry-dot dot-symptom">🤢</div>
+      <div class="entry-body">
+        <div class="entry-type">증상</div>
+        <div class="entry-main">복부 불편감, 약간 메스꺼움</div>
+        <span class="entry-tag tag-bad">바나나 연관 의심</span>
+      </div>
+      <div class="chevron" id="chev-d5">›</div>
+    </div>
+    <div class="detail-panel" id="d5">
+      <div class="detail-row">
+        <div class="detail-label">증상</div>
+        <div class="detail-val">복부 불편감 + 메스꺼움</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">AI 분석</div>
+        <div class="detail-val" style="color:#e07070;">점심의 바나나와 연관 가능성 높음. 7회 중 6회 패턴 감지됨.</div>
+      </div>
+    </div>
+
+    <div class="day-header">
+      <span>4월 1일 (수) · 어제</span>
+      <span class="day-header-right">기록 4건</span>
+    </div>
+
+    <div class="entry" onclick="toggleDetail('d6')">
+      <div class="entry-time">07:00<br>AM</div>
+      <div class="entry-dot dot-meal">🍽️</div>
+      <div class="entry-body">
+        <div class="entry-type">식사</div>
+        <div class="entry-main">오트밀, 삶은 달걀, 사과</div>
+        <span class="entry-tag tag-good">체질 적합</span>
+      </div>
+      <div class="chevron" id="chev-d6">›</div>
+    </div>
+    <div class="detail-panel" id="d6">
+      <div class="detail-row">
+        <div class="detail-label">음식 상세</div>
+        <div class="food-list-item"><span>오트밀 1그릇</span><span class="food-badge fb-good">적합</span></div>
+        <div class="food-list-item"><span>삶은 달걀 2개</span><span class="food-badge fb-good">적합</span></div>
+        <div class="food-list-item"><span>사과 반개</span><span class="food-badge fb-good">적합</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">메모</div>
+        <div class="detail-val">컨디션 좋음. 오전 내내 속 편안.</div>
+      </div>
+    </div>
+
+    <div class="entry" onclick="toggleDetail('d7')">
+      <div class="entry-time">01:00<br>PM</div>
+      <div class="entry-dot dot-meal">🍽️</div>
+      <div class="entry-body">
+        <div class="entry-type">식사</div>
+        <div class="entry-main">물냉면</div>
+        <span class="entry-tag tag-bad">체질 부적합</span>
+      </div>
+      <div class="chevron" id="chev-d7">›</div>
+    </div>
+    <div class="detail-panel" id="d7">
+      <div class="detail-row">
+        <div class="detail-label">음식 상세</div>
+        <div class="food-list-item"><span>물냉면 1그릇</span><span class="food-badge fb-bad">주의</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">메모</div>
+        <div class="detail-val">먹고 나서 속이 차가워지는 느낌.</div>
+      </div>
+    </div>
+
+    <div class="entry" onclick="toggleDetail('d8')">
+      <div class="entry-time">04:30<br>PM</div>
+      <div class="entry-dot dot-note">📝</div>
+      <div class="entry-body">
+        <div class="entry-type">메모</div>
+        <div class="entry-main">오후에 배가 사르르함. 냉면 때문인 것 같음.</div>
+      </div>
+      <div class="chevron" id="chev-d8">›</div>
+    </div>
+    <div class="detail-panel" id="d8">
+      <div class="detail-row">
+        <div class="detail-label">내용</div>
+        <div class="detail-val">오후에 배가 사르르함. 냉면 때문인 것 같음. 다음엔 피해야겠다.</div>
+      </div>
+    </div>
+
+    <div class="day-header">
+      <span>3월 31일 (화)</span>
+      <span class="day-header-right">기록 3건</span>
+    </div>
+    <div class="entry" onclick="toggleDetail('d9')">
+      <div class="entry-time">08:00<br>AM</div>
+      <div class="entry-dot dot-meal">🍽️</div>
+      <div class="entry-body">
+        <div class="entry-type">식사</div>
+        <div class="entry-main">계란후라이, 잡곡밥, 미역국</div>
+        <span class="entry-tag tag-good">체질 적합</span>
+      </div>
+      <div class="chevron" id="chev-d9">›</div>
+    </div>
+    <div class="detail-panel" id="d9">
+      <div class="detail-row">
+        <div class="detail-label">음식 상세</div>
+        <div class="food-list-item"><span>계란후라이 2개</span><span class="food-badge fb-good">적합</span></div>
+        <div class="food-list-item"><span>잡곡밥</span><span class="food-badge fb-good">적합</span></div>
+        <div class="food-list-item"><span>미역국</span><span class="food-badge fb-good">적합</span></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="fab" onclick="openSheet('식사')" title="기록 추가">＋</button>
+  <div class="overlay" id="overlay" onclick="closeSheet()"></div>
+
+  <div class="add-sheet" id="add-sheet">
+    <div class="sheet-title" id="sheet-title">식사 기록</div>
+    <div id="sheet-meal">
+      <div class="sheet-row">
+        <input class="sheet-input" placeholder="음식 이름 (쉼표로 구분)" id="meal-foods">
+      </div>
+      <div class="sheet-row">
+        <input class="sheet-input" placeholder="메모 (증상, 느낌 등)" id="meal-memo">
+      </div>
+    </div>
+    <div id="sheet-symptom" style="display:none;">
+      <div class="chip-row" id="sym-chips">
+        <button class="chip" onclick="toggleChip(this)">복통</button>
+        <button class="chip" onclick="toggleChip(this)">소화불량</button>
+        <button class="chip" onclick="toggleChip(this)">피로감</button>
+        <button class="chip" onclick="toggleChip(this)">두통</button>
+        <button class="chip" onclick="toggleChip(this)">메스꺼움</button>
+        <button class="chip" onclick="toggleChip(this)">더부룩함</button>
+        <button class="chip" onclick="toggleChip(this)">냉기</button>
+        <button class="chip" onclick="toggleChip(this)">열감</button>
+      </div>
+      <div class="sheet-row">
+        <input class="sheet-input" placeholder="직접 입력 또는 위에서 선택" id="sym-input">
+      </div>
+    </div>
+    <div id="sheet-water" style="display:none;">
+      <div class="sheet-row">
+        <input class="sheet-input" type="number" placeholder="ml 입력 (선택)" id="water-ml">
+      </div>
+    </div>
+    <div id="sheet-memo" style="display:none;">
+      <div class="sheet-row">
+        <input class="sheet-input" placeholder="자유롭게 메모하세요" id="free-memo">
+      </div>
+    </div>
+    <div id="sheet-snack" style="display:none;">
+      <div class="sheet-row">
+        <input class="sheet-input" placeholder="간식 이름" id="snack-input">
+      </div>
+      <div class="sheet-row">
+        <input class="sheet-input" placeholder="메모" id="snack-memo">
+      </div>
+    </div>
+    <div id="sheet-exercise" style="display:none;">
+      <div class="sheet-row">
+        <input class="sheet-input" placeholder="운동 종류 (예: 걷기 30분)" id="ex-input">
+      </div>
+    </div>
+    <div class="sheet-btn-row">
+      <button class="sheet-cancel" onclick="closeSheet()">취소</button>
+      <button class="sheet-save" onclick="saveEntry()">저장</button>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active"><span class="nav-icon">📋</span>기록</button>
+    <button class="nav-tab"><span class="nav-icon">📊</span>분석</button>
+    <button class="nav-tab"><span class="nav-icon">✨</span>추천</button>
+    <button class="nav-tab"><span class="nav-icon">⚙️</span>설정</button>
+  </div>
+</div>
+
+<script>
+let currentType = '식사';
+
+function openSheet(type) {
+  currentType = type;
+  const titles = { '식사':'식사 기록', '간식':'간식 기록', '증상':'증상 기록', '물':'물 기록', '메모':'메모', '운동':'운동 기록' };
+  document.getElementById('sheet-title').textContent = titles[type] || type;
+  ['meal','symptom','water','memo','snack','exercise'].forEach(k => {
+    document.getElementById('sheet-' + k).style.display = 'none';
+  });
+  const map = { '식사':'meal','간식':'snack','증상':'symptom','물':'water','메모':'memo','운동':'exercise' };
+  document.getElementById('sheet-' + (map[type] || 'memo')).style.display = 'block';
+  document.getElementById('add-sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('add-sheet').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function toggleChip(el) { el.classList.toggle('active'); }
+
+function saveEntry() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hh = (h % 12 || 12).toString().padStart(2, '0');
+  const mm = m.toString().padStart(2, '0');
+  let mainText = '', typeLabel = '', dotClass = 'dot-note', icon = '📝', tagHtml = '';
+
+  if (currentType === '식사') {
+    const foods = document.getElementById('meal-foods').value || '식사 기록됨';
+    mainText = foods; typeLabel = '식사'; dotClass = 'dot-meal'; icon = '🍽️';
+    tagHtml = '<span class="entry-tag tag-good">기록됨</span>';
+    document.getElementById('meal-foods').value = '';
+    document.getElementById('meal-memo').value = '';
+  } else if (currentType === '간식') {
+    mainText = document.getElementById('snack-input').value || '간식';
+    typeLabel = '간식'; dotClass = 'dot-snack'; icon = '🍎';
+    document.getElementById('snack-input').value = '';
+  } else if (currentType === '증상') {
+    const chips = [...document.querySelectorAll('#sym-chips .chip.active')].map(c => c.textContent).join(', ');
+    const custom = document.getElementById('sym-input').value;
+    mainText = [chips, custom].filter(Boolean).join(', ') || '증상 기록됨';
+    typeLabel = '증상'; dotClass = 'dot-symptom'; icon = '🤢';
+    tagHtml = '<span class="entry-tag tag-warn">기록됨</span>';
+    document.querySelectorAll('#sym-chips .chip').forEach(c => c.classList.remove('active'));
+    document.getElementById('sym-input').value = '';
+  } else if (currentType === '물') {
+    const ml = document.getElementById('water-ml').value;
+    mainText = '물 ' + (ml ? ml + 'ml' : '');
+    typeLabel = '물'; dotClass = 'dot-water'; icon = '💧';
+    document.getElementById('water-ml').value = '';
+  } else if (currentType === '메모') {
+    mainText = document.getElementById('free-memo').value || '메모';
+    typeLabel = '메모'; icon = '📝';
+    document.getElementById('free-memo').value = '';
+  } else if (currentType === '운동') {
+    mainText = document.getElementById('ex-input').value || '운동';
+    typeLabel = '운동'; icon = '🏃'; dotClass = 'dot-note';
+    document.getElementById('ex-input').value = '';
+  }
+
+  const id = 'e' + Date.now();
+  const html = `
+    <div class="entry" onclick="toggleDetail('${id}')">
+      <div class="entry-time">${hh}:${mm}<br>${ampm}</div>
+      <div class="entry-dot ${dotClass}">${icon}</div>
+      <div class="entry-body">
+        <div class="entry-type">${typeLabel}</div>
+        <div class="entry-main">${mainText}</div>
+        ${tagHtml}
+      </div>
+      <div class="chevron" id="chev-${id}">›</div>
+    </div>
+    <div class="detail-panel" id="${id}">
+      <div class="detail-row">
+        <div class="detail-label">방금 기록됨</div>
+        <div class="detail-val">${mainText}</div>
+      </div>
+    </div>`;
+
+  const tl = document.getElementById('timeline');
+  const firstHeader = tl.querySelector('.day-header');
+  firstHeader.insertAdjacentHTML('afterend', html);
+  closeSheet();
+  tl.scrollTop = 0;
+}
+
+function toggleDetail(id) {
+  const panel = document.getElementById(id);
+  const chev = document.getElementById('chev-' + id);
+  const isOpen = panel.classList.contains('open');
+  document.querySelectorAll('.detail-panel').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.chevron').forEach(c => { c.classList.remove('open'); c.textContent = '›'; });
+  if (!isOpen) {
+    panel.classList.add('open');
+    if (chev) { chev.classList.add('open'); chev.textContent = '⌄'; }
+  }
+}
+</script>
+</body>
+</html>
